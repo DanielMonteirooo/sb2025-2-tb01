@@ -90,6 +90,13 @@ private:
         {
             numeroLinha++;
             istringstream iss(linha);
+            
+            // Remove comentários
+            size_t posComentario = linha.find(';');
+            if (posComentario != string::npos)
+            {
+                linha = linha.substr(0, posComentario);
+            }
 
             // Verifica se a linha tem label
             bool temLabel = false;

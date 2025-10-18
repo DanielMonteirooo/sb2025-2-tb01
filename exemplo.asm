@@ -4,15 +4,15 @@ FOO:     MACRO &1, &2 ; OI :)
          STORE &1
          ENDMACRO
 BAR:     MACRO &1 ; Olá :)
-         ADD UM
+         ADD CINCO
          MUL &1
          STORE &1
          ENDMACRO
-INICIO:  LOAD NUM ; Tudo bem?
-         BAR NUM
-         ADD UM
-         STORE NUM
-         FOO NUM, UM ; Com você? 
+INICIO:  LOAD DOIS ; Tudo bem?
+         BAR DOIS
+         ADD CINCO
+         STORE DOIS
+         FOO DOIS, CINCO ; Com você? 
          STOP
-NUM:     SPACE 1
-UM:      CONST 1
+DOIS:    SPACE 2
+CINCO:   CONST 5

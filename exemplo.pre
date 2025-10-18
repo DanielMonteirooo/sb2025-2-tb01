@@ -1,12 +1,12 @@
-INICIO:  LOAD NUM ; Tudo bem?
-         ADD UM
-         MUL NUM
-         STORE NUM
-         ADD UM
-         STORE NUM
-         LOAD NUM
-         ADD UM
-         STORE NUM
+INICIO:  LOAD DOIS 
+         ADD CINCO
+         MUL DOIS
+         STORE DOIS
+         ADD CINCO
+         STORE DOIS
+         LOAD DOIS
+         ADD CINCO
+         STORE DOIS
          STOP
-NUM:     SPACE 1
-UM:      CONST 1
+DOIS:    SPACE 2
+CINCO:   CONST 5
