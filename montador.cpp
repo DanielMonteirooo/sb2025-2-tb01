@@ -208,7 +208,7 @@ private:
                         simbolo.definir(PROXIMO_ENDERECO);
                         if (resolverPendencias)
                         {
-                            for (const int &pendencia : simbolo.getPendencias())
+                            for (const unsigned int &pendencia : simbolo.getPendencias())
                             {
                                 substituiCodigoObjeto(pendencia, simbolo.getEndereco());
                             }
@@ -334,9 +334,9 @@ private:
         codigoObjeto.push_back(codigo);
     }
 
-    void substituiCodigoObjeto(int endereco, int codigo)
+    void substituiCodigoObjeto(unsigned int endereco, int codigo)
     {
-        if (endereco >= 0 && endereco < codigoObjeto.size())
+        if (endereco < codigoObjeto.size())
         {
             codigoObjeto[endereco] = codigo;
         }

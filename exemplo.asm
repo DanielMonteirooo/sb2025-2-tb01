@@ -11,6 +11,7 @@ BAR:     MACRO &1 ; Olá :)
 INICIO:  LOAD DOIS ; Tudo bem?
          BAR DOIS
          ADD CINCO
+         COPY DOIS CINCO
          STORE DOIS
          FOO DOIS, CINCO ; Com você? 
          STOP

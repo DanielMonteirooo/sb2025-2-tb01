@@ -254,7 +254,7 @@ private:
         }
         
         DefinicaoDeMacro definicaoDeMacro = tabelaDefinicoesDeMacros.at(nomeDeMacro.getLinhaDefinicao());
-        int quantidadeArgumentos = nomeDeMacro.getQuantidadeArgumentos();
+        unsigned int quantidadeArgumentos = nomeDeMacro.getQuantidadeArgumentos();
         map<string, string> argumentosPassados;
         string arg;
         
@@ -285,7 +285,7 @@ private:
         {
             string linhaExpandida = linha;
 
-            for (int i = 0; i < quantidadeArgumentos; i++)
+            for (unsigned int i = 0; i < quantidadeArgumentos; i++)
             {
                 string argNome = "#" + to_string(i + 1);
                 size_t pos = linhaExpandida.find(argNome);
