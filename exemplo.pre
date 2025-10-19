@@ -1,6 +1,6 @@
-INICIO:  LOAD DOIS 
+INICIO:  LOAD DOIS
          ADD CINCO
-         MUL DOIS
+         MULT DOIS
          STORE DOIS
          ADD CINCO
          STORE DOIS

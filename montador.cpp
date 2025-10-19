@@ -6,6 +6,7 @@
 #include <map>
 #include <cctype>
 #include <algorithm>
+#include <regex>
 using namespace std;
 
 class Opcode
@@ -29,6 +30,7 @@ private:
     int endereco;
     bool definido;
     vector<int> pendencias;
+    vector<int> referencias; // Linhas onde o símbolo é referenciado (para erros)
 public:
     Simbolo(const string &simbolo)
         : simbolo(simbolo), endereco(-1), definido(false) {}
@@ -45,14 +47,20 @@ public:
         this->definido = true;
     }
 
-    void adicionarPendencia(int pendencia)
+    void adicionarPendencia(int pendencia, int linha)
     {
         pendencias.push_back(pendencia);
+        referencias.push_back(linha);
     }
 
     const vector<int>& getPendencias() const
     {
         return pendencias;
+    }
+
+    const vector<int>& getReferencias() const
+    {
+        return referencias;
     }
 };
 
@@ -64,12 +72,12 @@ struct CodigoTresEnderecos
     int operando2;
 };
 
-// - Rotulo declarado duas vezes em lugares diferentes
+// - Rotulo declarado duas vezes em lugares diferentes ✅
 // - Dois rótulos na mesma linha
-// - Rotulo não declarado
-// - Instrução com número de parâmetros errado
-// - Instução inexistente
-// - Erros léxicos (label  não pode começar por número e o único caracter especial que pode ter é o “_”).
+// - Rotulo não declarado ✅
+// - Instrução com número de parâmetros errado ✅
+// - Instução inexistente ✅
+// - Erros léxicos (label  não pode começar por número e o único caracter especial que pode ter é o “_”). ✅
 const map<string, string> erros = {
     {"rotulo_duplicado", "Rótulo declarado duas vezes em lugares diferentes"},
     {"dois_rotulos", "Dois rótulos na mesma linha"},
@@ -84,9 +92,14 @@ class Montador
 public:
     Montador(const string &inname, const string &outname)
         : inname(inname), outname(outname) {}
-    bool processa()
+    bool processa(bool resolverPendencias = true)
     {
+        this->resolverPendencias = resolverPendencias;
+        this->abreArquivos();
         this->montagem();
+        this->validaTabelaDeSimbolos();
+        this->escreveCodigoObjeto();
+        this->limpeza();
         return 0;
     }
 private:
@@ -94,6 +107,7 @@ private:
     string outname;
     ifstream infile;
     ofstream outfile;
+    bool resolverPendencias;
 
     vector<int> codigoObjeto;
     #define PROXIMO_ENDERECO codigoObjeto.size()
@@ -102,7 +116,7 @@ private:
     const map<string, Opcode> tabelaOpCodes = {
         {"ADD", Opcode("ADD", 1, 1)},
         {"SUB", Opcode("SUB", 2, 1)},
-        {"MUL", Opcode("MUL", 3, 1)},
+        {"MULT", Opcode("MULT", 3, 1)},
         {"DIV", Opcode("DIV", 4, 1)},
         {"JMP", Opcode("JMP", 5, 1)},
         {"JMPN", Opcode("JMPN", 6, 1)},
@@ -115,6 +129,25 @@ private:
         {"OUTPUT", Opcode("OUTPUT", 13, 1)},
         {"STOP", Opcode("STOP", 14, 0)}
     };
+
+    void abreArquivos()
+    {
+        string tempOutname = outname; // Permite a rechamada do método na mesma instância
+        resolverPendencias ? tempOutname += ".o2" : tempOutname += ".o1";
+
+        infile.open(inname);
+        if (!infile.is_open())
+        {
+            cerr << "Erro ao abrir arquivo de entrada: " << inname << endl;
+            return;
+        }
+        outfile.open(tempOutname);
+        if (!outfile.is_open())
+        {
+            cerr << "Erro ao abrir arquivo de saída: " << tempOutname << endl;
+            return;
+        }
+    }
 
     /*
         Fazer o algoritmo de passagem única com a lista de pendencias feita no próprio código. E mostrar o código inteiro com as listas de pendencias SEM corrigir as as pendencias na saída .o1. A saída final do código compilado e no arquivo .o2.
@@ -130,25 +163,13 @@ private:
      */
     void montagem()
     {
-        infile.open(inname);
-        if (!infile.is_open())
-        {
-            cerr << "Erro ao abrir arquivo de entrada: " << inname << endl;
-            return;
-        }
-        outfile.open(outname);
-        if (!outfile.is_open())
-        {
-            cerr << "Erro ao abrir arquivo de saída: " << outname << endl;
-            return;
-        }
         string linha;
         int numeroLinha = 0; // usado para adiconar erros na linha correta
         while (getline(infile, linha))
         {
             numeroLinha++;
 
-            if (linha.empty() || linha[0] == ';') // Ignora linhas vazias e comentários
+            if (linha.empty() || linha[0] == ';') // Ignora linhas vazias e comentadas
                 continue;
                 
             string palavra;
@@ -169,6 +190,11 @@ private:
                 // É label?
                 if (ehDefinicaoDeLabel(palavra))
                 {
+                    if (!regex_search(palavra, regex("[^a-zA-Z_]")))
+                    {
+                        adicionaErro(erros.at("erro_lexico"), numeroLinha);
+                    }
+                    
                     string rotulo = palavra.substr(0, palavra.size() - 1);
                     // Verifica se o rótulo já foi declarado e definido
                     if (tabelaSimbolos.find(rotulo) != tabelaSimbolos.end() && tabelaSimbolos.at(rotulo).ehDefinido())
@@ -180,9 +206,12 @@ private:
                     {
                         Simbolo& simbolo = tabelaSimbolos.at(rotulo);
                         simbolo.definir(PROXIMO_ENDERECO);
-                        for (const int &pendencia : simbolo.getPendencias())
+                        if (resolverPendencias)
                         {
-                            substituiCodigoObjeto(pendencia, simbolo.getEndereco());
+                            for (const int &pendencia : simbolo.getPendencias())
+                            {
+                                substituiCodigoObjeto(pendencia, simbolo.getEndereco());
+                            }
                         }
                     }
                     else
@@ -209,12 +238,12 @@ private:
                             if (tabelaSimbolos.find(param) == tabelaSimbolos.end())
                             {
                                 tabelaSimbolos.insert({param, Simbolo(param)});
-                                tabelaSimbolos.at(param).adicionarPendencia(PROXIMO_ENDERECO);
+                                tabelaSimbolos.at(param).adicionarPendencia(PROXIMO_ENDERECO, numeroLinha);
                                 adicionaCodigoObjeto(-1);
                             } 
                             else if (!tabelaSimbolos.at(param).ehDefinido())
                             {
-                                tabelaSimbolos.at(param).adicionarPendencia(PROXIMO_ENDERECO);
+                                tabelaSimbolos.at(param).adicionarPendencia(PROXIMO_ENDERECO, numeroLinha);
                                 adicionaCodigoObjeto(-1);
                             }
                             else
@@ -225,7 +254,6 @@ private:
                         else
                         {
                             adicionaErro(erros.at("parametros_errados"), numeroLinha);
-                            break;
                         }
                     }
                 }
@@ -268,19 +296,22 @@ private:
             }
         }
         infile.close();
-        outfile.close();
-        tabelaSimbolos.clear();
+    }
 
-        // Escreve o código objeto no arquivo de saída
-        outfile.open(outname);
-        for (size_t i = 0; i < codigoObjeto.size(); i++)
+    void validaTabelaDeSimbolos()
+    {
+        // Se algum simbolo estiver indefinido, adiciona erro nas linhas pendentes
+        for (const auto &par : tabelaSimbolos)
         {
-            outfile << codigoObjeto[i];
-            if (i < codigoObjeto.size() - 1)
-                outfile << " ";
+            const Simbolo &simbolo = par.second;
+            if (!simbolo.ehDefinido())
+            {
+                for (const int &referencia : simbolo.getReferencias())
+                {
+                    adicionaErro(erros.at("rotulo_nao_declarado"), referencia);
+                }
+            }
         }
-        outfile.close();
-
     }
     
     bool ehDefinicaoDeLabel(const string &palavra)
@@ -314,8 +345,12 @@ private:
     void adicionaErro(const string &mensagem, int linha)
     {
         // Escreve erro no fim da linha no infile
-        infile.clear();
-        infile.seekg(0, ios::beg);
+        infile.open(inname);
+        if (!infile.is_open())
+        {
+            cerr << "Erro ao abrir arquivo de entrada para adicionar erro: " << inname << endl;
+            return;
+        }
         string linhaAtual;
         int numeroLinha = 0;
         vector<string> linhas;
@@ -340,6 +375,26 @@ private:
         remove(inname.c_str());
         rename("temp.pre", inname.c_str());
     }
+
+    void escreveCodigoObjeto()
+    {
+        for (size_t i = 0; i < codigoObjeto.size(); i++)
+        {
+            outfile << codigoObjeto[i];
+            if (i < codigoObjeto.size() - 1)
+                outfile << " ";
+        }
+        outfile << endl;
+        outfile.close();
+    }
+
+    void limpeza()
+    {
+        infile.close();
+        outfile.close();
+        tabelaSimbolos.clear();
+        codigoObjeto.clear();
+    }
 };
 
 int main(int argc, char **argv)
@@ -351,15 +406,19 @@ int main(int argc, char **argv)
     }
 
     string inname = argv[1];
-    // Troca extensão .pre por .o1
+
+    // Cria outfile sem extensão. A gestão da extensão será feita pela classe Montador
     string outname = inname;
     if (outname.size() >= 4 && outname.substr(outname.size() - 4) == ".pre")
-        outname = outname.substr(0, outname.size() - 4) + ".o1";
+        outname = outname.substr(0, outname.size() - 4);
     else
-        outname += ".o1";
+    {
+        cerr << "Aviso: arquivo de entrada não tem extensão .pre\n";
+        return 1;
+    }
 
     Montador montador(inname, outname);
-    if (!montador.processa())
+    if (!montador.processa() && !montador.processa(false))
     {
         return 1;
     }
