@@ -141,7 +141,10 @@ private:
             // Se é o nome de uma macro, expandir a definição da tabela de definições de macros
             else if (tabelaNomesDeMacros.size() > 0 && macroDefinida)
             {
-                expandirMacro(iss, opcode);
+                for (const string &linhaExpandida : expandirMacro(iss, opcode))
+                {
+                    outfile << linhaExpandida << endl;
+                }
             }
             // Caso contrário, escrever a linha no novo código fonte
             else
@@ -192,6 +195,22 @@ private:
                 break;
             }
 
+            // Verifica se palavra é uma macro definida
+            for (const auto &par : tabelaNomesDeMacros)
+            {
+                if (par.second.getNome() == palavra)
+                {
+                    // Adiciona definição da macro encontrada na atual
+                    vector<string> linhasExpandida = expandirMacro(issLinha, palavra);
+                    for (const string &linhaExpandida : linhasExpandida)
+                    {                        
+                        definicao.push_back(linhaExpandida);
+                    }
+                    palavra.clear(); // Para não adicionar a palavra original novamente
+                    break;
+                }
+            }
+
             // Substitui os argumentos pelos nomes renomeados
             for (const auto &par : argumentos)
             {
@@ -203,17 +222,21 @@ private:
                 }
             }
 
-            definicao.push_back(linha);
+            if (!palavra.empty()) 
+            {
+                definicao.push_back(linha);
+            }
         }
 
         DefinicaoDeMacro definicaoDeMacro(nomeMacro, definicao);
         tabelaDefinicoesDeMacros.emplace(linhaTabelaDeDefinicao, definicaoDeMacro);
     }
 
-    void expandirMacro(istringstream &iss, const string &nomeMacro)
+    vector<string> expandirMacro(istringstream &iss, const string &nomeMacro)
     {
+        vector<string> linhasExpandida;
+
         // Encontra nome de macro que corresponde ao opcode
-        
         NomeDeMacro nomeDeMacro;
         for (const auto &par : tabelaNomesDeMacros)
         {
@@ -227,8 +250,9 @@ private:
         if (nomeDeMacro.getLinhaDefinicao() == -1)
         {
             cout << "Alerta: Macro " << nomeMacro << " não definida." << endl;
-            return;
+            return linhasExpandida;
         }
+        
         DefinicaoDeMacro definicaoDeMacro = tabelaDefinicoesDeMacros.at(nomeDeMacro.getLinhaDefinicao());
         int quantidadeArgumentos = nomeDeMacro.getQuantidadeArgumentos();
         map<string, string> argumentosPassados;
@@ -242,13 +266,18 @@ private:
             if (arg[0] == ';')
                 break; // Ignora comentários
 
+            if (arg.at(0) == '&') // Se receber um argumento com &, troca por #. Pode ocorrer quando uma macro chama outra
+            {
+                arg.replace(0, 1, "#");
+            }
+
             argumentosPassados.emplace("#" + to_string(argumentosPassados.size() + 1), arg);
         }
         
         if (argumentosPassados.size() != quantidadeArgumentos)
         {
             cout << "Alerta: Quantidade de argumentos incorreta para a macro " << nomeMacro << endl;
-            return;
+            return linhasExpandida;
         }
 
         vector<string> definicao = definicaoDeMacro.getDefinicao();
@@ -267,8 +296,10 @@ private:
                 }
             }
 
-            outfile << linhaExpandida << endl;
+            linhasExpandida.push_back(linhaExpandida);
         }
+        
+        return linhasExpandida;
     }
 };
 
@@ -286,7 +317,11 @@ int main(int argc, char **argv)
     if (outname.size() >= 4 && outname.substr(outname.size() - 4) == ".asm")
         outname = outname.substr(0, outname.size() - 4) + ".pre";
     else
-        outname += ".pre";
+    {
+        cerr << "Aviso: arquivo de entrada não tem extensão .asm\n";
+        return 1;
+    }
+
 
     Preprocessador pre(inname, outname);
     if (!pre.processa())

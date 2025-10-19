@@ -6,7 +6,7 @@ FOO:     MACRO &1, &2 ; OI :)
 BAR:     MACRO &1 ; Olá :)
          ADD CINCO
          MULT &1
-         FOO &1, CINCO
+         STORE &1
          ENDMACRO
 INICIO:  LOAD DOIS ; Tudo bem?
          BAR DOIS
