@@ -6,7 +6,6 @@
 #include <map>
 #include <cctype>
 #include <algorithm>
-#include <regex>
 using namespace std;
 
 class Opcode
@@ -64,14 +63,6 @@ public:
     }
 };
 
-struct CodigoTresEnderecos
-{
-    int endereco;
-    int opcode;
-    int operando1;
-    int operando2;
-};
-
 // - Rotulo declarado duas vezes em lugares diferentes ✅
 // - Dois rótulos na mesma linha
 // - Rotulo não declarado ✅
@@ -99,6 +90,10 @@ public:
         this->montagem();
         this->validaTabelaDeSimbolos();
         this->escreveCodigoObjeto();
+        if (!errosExibidos)
+        {
+            this->adicionaErros();
+        }
         this->limpeza();
         return 0;
     }
@@ -107,6 +102,8 @@ private:
     string outname;
     ifstream infile;
     ofstream outfile;
+    map<int, string> errosLinha;
+    bool errosExibidos = false;
     bool resolverPendencias;
 
     vector<int> codigoObjeto;
@@ -165,6 +162,7 @@ private:
     {
         string linha;
         int numeroLinha = 0; // usado para adiconar erros na linha correta
+        int contadorLabelsNaLinha = 0;
         while (getline(infile, linha))
         {
             numeroLinha++;
@@ -190,16 +188,22 @@ private:
                 // É label?
                 if (ehDefinicaoDeLabel(palavra))
                 {
-                    if (!regex_search(palavra, regex("[^a-zA-Z_]")))
+                    contadorLabelsNaLinha++;
+                    if (contadorLabelsNaLinha > 1)
                     {
-                        adicionaErro(erros.at("erro_lexico"), numeroLinha);
+                        errosLinha.insert({numeroLinha, erros.at("dois_rotulos")});
                     }
                     
+                    if (palavra.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890_") != std::string::npos)
+                    {
+                        errosLinha.insert({numeroLinha, erros.at("erro_lexico")});
+                    }
+
                     string rotulo = palavra.substr(0, palavra.size() - 1);
                     // Verifica se o rótulo já foi declarado e definido
                     if (tabelaSimbolos.find(rotulo) != tabelaSimbolos.end() && tabelaSimbolos.at(rotulo).ehDefinido())
                     {
-                        adicionaErro(erros.at("rotulo_duplicado"), numeroLinha);
+                        errosLinha.insert({numeroLinha, erros.at("rotulo_duplicado")});
                     }
                     // Verifica se o rótulo já foi declarado mas não definido
                     else if (tabelaSimbolos.find(rotulo) != tabelaSimbolos.end() && !tabelaSimbolos.at(rotulo).ehDefinido())
@@ -224,6 +228,8 @@ private:
                 // Verifica o opcode
                 else if (ehOpcode(palavra))
                 {
+                    contadorLabelsNaLinha = 0;
+                    
                     // Adiciona no código objeto
                     adicionaCodigoObjeto(tabelaOpCodes.at(palavra).getCodigo());
 
@@ -253,12 +259,14 @@ private:
                         }
                         else
                         {
-                            adicionaErro(erros.at("parametros_errados"), numeroLinha);
+                            errosLinha.insert({numeroLinha, erros.at("parametros_errados")});
                         }
                     }
                 }
                 else if (ehDiretiva(palavra))
                 {
+                    contadorLabelsNaLinha = 0;
+                    
                     if (palavra == "SPACE")
                     {
                         string tamanhoSpace;
@@ -272,7 +280,7 @@ private:
                         }
                         else
                         {
-                            adicionaErro(erros.at("parametros_errados"), numeroLinha);
+                            errosLinha.insert({numeroLinha, erros.at("parametros_errados")});
                         }
                     }
                     else if (palavra == "CONST")
@@ -285,13 +293,15 @@ private:
                         }
                         else
                         {
-                            adicionaErro(erros.at("parametros_errados"), numeroLinha);
+                            errosLinha.insert({numeroLinha, erros.at("parametros_errados")});
                         }
                     }
                 }
                 else
                 {
-                    adicionaErro(erros.at("instrucao_inexistente"), numeroLinha);
+                    contadorLabelsNaLinha = 0;
+
+                    errosLinha.insert({numeroLinha, erros.at("instrucao_inexistente")});
                 }
             }
         }
@@ -308,7 +318,7 @@ private:
             {
                 for (const int &referencia : simbolo.getReferencias())
                 {
-                    adicionaErro(erros.at("rotulo_nao_declarado"), referencia);
+                    errosLinha.insert({referencia, erros.at("rotulo_nao_declarado")});
                 }
             }
         }
@@ -342,7 +352,19 @@ private:
         }
     }
 
-    void adicionaErro(const string &mensagem, int linha)
+    void escreveCodigoObjeto()
+    {
+        for (size_t i = 0; i < codigoObjeto.size(); i++)
+        {
+            outfile << codigoObjeto[i];
+            if (i < codigoObjeto.size() - 1)
+                outfile << " ";
+        }
+        outfile << endl;
+        outfile.close();
+    }
+
+    void adicionaErros()
     {
         // Escreve erro no fim da linha no infile
         infile.open(inname);
@@ -357,12 +379,17 @@ private:
         while (getline(infile, linhaAtual))
         {
             numeroLinha++;
-            if (numeroLinha == linha)
-            {
-                linhaAtual += " ; Erro: " + mensagem; 
+            try {
+                if (errosLinha.find(numeroLinha) != errosLinha.end())
+                {
+                    linhaAtual += " ; " + errosLinha.at(numeroLinha);
+                }
+                linhas.push_back(linhaAtual);
+            } catch (const out_of_range &e) {
+                linhas.push_back(linhaAtual);
             }
-            linhas.push_back(linhaAtual);
         }
+
         infile.close();
 
         // Reescreve o arquivo .pre com as linhas atualizadas
@@ -371,21 +398,11 @@ private:
         {
             tempFile << l << endl;
         }
+
         tempFile.close();
         remove(inname.c_str());
         rename("temp.pre", inname.c_str());
-    }
-
-    void escreveCodigoObjeto()
-    {
-        for (size_t i = 0; i < codigoObjeto.size(); i++)
-        {
-            outfile << codigoObjeto[i];
-            if (i < codigoObjeto.size() - 1)
-                outfile << " ";
-        }
-        outfile << endl;
-        outfile.close();
+        errosExibidos = true;
     }
 
     void limpeza()
