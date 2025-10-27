@@ -294,6 +294,8 @@ private:
     void tratarDiretiva(const string &palavra, istringstream &iss)
     {
         contadorLabelsNaLinha = 0;
+
+        // SPACE sem parametros é 1 espaço
                     
         if (palavra == "SPACE")
         {
@@ -308,7 +310,7 @@ private:
             }
             else
             {
-                errosLinha.insert({numeroLinha, erros.at("parametros_errados")});
+                adicionaCodigoObjeto(0);
             }
         }
         else if (palavra == "CONST")

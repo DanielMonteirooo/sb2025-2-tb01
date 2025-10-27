@@ -8,6 +8,6 @@ preprocessador: preprocessador.cpp
 montador: montador.cpp
 	$(CC) $(CFLAGS) -o montador montador.cpp
 clean:
-	rm -f preprocessador montador exemplo.pre exemplo.o1 exemplo.o2
+	rm -f preprocessador montador *.pre *.o1 *.o2
 
 .PHONY: run clean preprocessador montador

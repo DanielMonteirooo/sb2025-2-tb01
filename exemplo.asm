@@ -8,6 +8,7 @@ BAR:     MACRO &1 ; Olá :)
          MULT &1
          FOO &1, &1
          ENDMACRO
+ESPACO:  SPACE
 INICIO:  LOAD _DOIS! ; Tudo bem?
          BAR _DOIS!
          ADD CI_NCO
