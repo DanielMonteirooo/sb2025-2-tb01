@@ -22,13 +22,27 @@ public:
     int getArgumentos() const { return argumentos; }
 };
 
+class Pendencia
+{
+private:
+    int endereco;
+    int linha;
+    int offset;
+public:
+    Pendencia(int endereco, int linha, int offset)
+        : endereco(endereco), linha(linha), offset(offset) {}
+    int getEndereco() const { return endereco; }
+    int getLinha() const { return linha; }
+    int getOffset() const { return offset; }
+};
+
 class Simbolo
 {
 private:
     string simbolo;
     int endereco;
     bool definido;
-    vector<int> pendencias;
+    vector<Pendencia> pendencias;
     vector<int> referencias; // Linhas onde o símbolo é referenciado (para erros)
 public:
     Simbolo(const string &simbolo)
@@ -46,13 +60,14 @@ public:
         this->definido = true;
     }
 
-    void adicionarPendencia(int pendencia, int linha)
+    void adicionarPendencia(int endereco, int linha, int offset = 0)
     {
-        pendencias.push_back(pendencia);
+        Pendencia p(endereco, linha, offset);
+        pendencias.push_back(p);
         referencias.push_back(linha);
     }
 
-    const vector<int>& getPendencias() const
+    const vector<Pendencia>& getPendencias() const
     {
         return pendencias;
     }
@@ -64,7 +79,7 @@ public:
 };
 
 // - Rotulo declarado duas vezes em lugares diferentes ✅
-// - Dois rótulos na mesma linha
+// - Dois rótulos na mesma linha ✅
 // - Rotulo não declarado ✅
 // - Instrução com número de parâmetros errado ✅
 // - Instução inexistente ✅
@@ -232,9 +247,9 @@ private:
             simbolo.definir(PROXIMO_ENDERECO);
             if (resolverPendencias)
             {
-                for (const unsigned int &pendencia : simbolo.getPendencias())
+                for (const Pendencia &pendencia : simbolo.getPendencias())
                 {
-                    substituiCodigoObjeto(pendencia, simbolo.getEndereco());
+                    substituiCodigoObjeto(pendencia.getEndereco(), simbolo.getEndereco() + pendencia.getOffset());
                 }
             }
         }
@@ -263,25 +278,39 @@ private:
             string param;
             if (iss >> param && !ehDefinicaoDeLabel(param) && !ehOpcode(param))
             {
-                // Verifica se o símbolo não existe na tabela de símbolos (adiciona como pendência)
-                if (tabelaSimbolos.find(param) == tabelaSimbolos.end())
+                // Verifica se há offset
+                size_t maisPos = param.find('+');
+                string rotulo = (maisPos != string::npos) ? param.substr(0, maisPos) : param;
+                int offset = 0;
+                if (maisPos != string::npos)
                 {
-                    tabelaSimbolos.insert({param, Simbolo(param)});
-                    tabelaSimbolos.at(param).adicionarPendencia(PROXIMO_ENDERECO, numeroLinha);
-                    adicionaCodigoObjeto(-1);
+                    string offsetStr = param.substr(maisPos + 1);
+                    try {
+                        offset = stoi(offsetStr);
+                    } catch (const invalid_argument &e) {
+                        errosLinha.insert({numeroLinha, erros.at("parametros_errados")});
+                        continue;
+                    }
                 }
 
-                // Verifica se o símbolo já foi declarado mas não definido (adiciona como pendência)
-                else if (!tabelaSimbolos.at(param).ehDefinido())
+                // Verifica se o símbolo não existe na tabela de símbolos (adiciona como pendência)
+                if (tabelaSimbolos.find(rotulo) == tabelaSimbolos.end())
                 {
-                    tabelaSimbolos.at(param).adicionarPendencia(PROXIMO_ENDERECO, numeroLinha);
+                    Simbolo simbolo(rotulo);
+                    simbolo.adicionarPendencia(PROXIMO_ENDERECO, numeroLinha, offset);
+                    tabelaSimbolos.insert({rotulo, simbolo});
                     adicionaCodigoObjeto(-1);
                 }
-                
+                // Verifica se o símbolo já foi declarado mas não definido (adiciona como pendência)
+                else if (!tabelaSimbolos.at(rotulo).ehDefinido())
+                {
+                    tabelaSimbolos.at(rotulo).adicionarPendencia(PROXIMO_ENDERECO, numeroLinha, offset);
+                    adicionaCodigoObjeto(-1);
+                }
                 // Símbolo já definido
                 else
                 {
-                    adicionaCodigoObjeto(tabelaSimbolos.at(param).getEndereco());
+                    adicionaCodigoObjeto(tabelaSimbolos.at(rotulo).getEndereco() + offset);
                 }
             }
             else
@@ -294,8 +323,6 @@ private:
     void tratarDiretiva(const string &palavra, istringstream &iss)
     {
         contadorLabelsNaLinha = 0;
-
-        // SPACE sem parametros é 1 espaço
                     
         if (palavra == "SPACE")
         {
