@@ -186,6 +186,8 @@ private:
 
             if (linha.empty() || linha[0] == ';') // Ignora linhas vazias e comentadas
                 continue;
+
+            transform(linha.begin(), linha.end(), linha.begin(), ::toupper);
                 
             string palavra;
             istringstream iss(linha);
@@ -193,7 +195,6 @@ private:
             {
                 // Remove espaços em branco
                 palavra.erase(remove_if(palavra.begin(), palavra.end(), ::isspace), palavra.end());
-                transform(palavra.begin(), palavra.end(), palavra.begin(), ::toupper);
 
                 // se comentário, limpa a linha
                 if (palavra[0] == ';')
