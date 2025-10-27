@@ -203,11 +203,23 @@ private:
                 }
 
                 // É label?
-                if (ehDefinicaoDeLabel(palavra)) tratarLabel(palavra);
+                if (ehDefinicaoDeLabel(palavra)) 
+                {
+                    contadorLabelsNaLinha++;
+                    tratarLabel(palavra);
+                }
                 // Verifica o opcode
-                else if (ehOpcode(palavra)) tratarOpcode(palavra, iss);
+                else if (ehOpcode(palavra))
+                { 
+                    contadorLabelsNaLinha = 0;
+                    tratarOpcode(palavra, iss);
+                }
                 // Verifica diretiva
-                else if (ehDiretiva(palavra)) tratarDiretiva(palavra, iss);
+                else if (ehDiretiva(palavra)) 
+                {
+                    contadorLabelsNaLinha = 0;
+                    tratarDiretiva(palavra, iss);
+                }
                 else
                 {
                     contadorLabelsNaLinha = 0;
@@ -220,8 +232,6 @@ private:
 
     void tratarLabel(const string &palavra)
     {
-        contadorLabelsNaLinha++;
-
         if (contadorLabelsNaLinha > 1)
         {
             errosLinha.insert({numeroLinha, erros.at("dois_rotulos")});
@@ -265,8 +275,6 @@ private:
 
     void tratarOpcode(const string &palavra, istringstream &iss)
     {
-        contadorLabelsNaLinha = 0;
-                    
         // Adiciona no código objeto
         adicionaCodigoObjeto(tabelaOpCodes.at(palavra).getCodigo());
 
@@ -321,9 +329,7 @@ private:
     }
 
     void tratarDiretiva(const string &palavra, istringstream &iss)
-    {
-        contadorLabelsNaLinha = 0;
-                    
+    {               
         if (palavra == "SPACE")
         {
             string tamanhoSpace;
