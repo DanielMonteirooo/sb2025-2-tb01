@@ -70,11 +70,11 @@ public:
 // - Instução inexistente ✅
 // - Erros léxicos (label  não pode começar por número e o único caracter especial que pode ter é o “_”). ✅
 const map<string, string> erros = {
-    {"rotulo_duplicado", "Rótulo declarado duas vezes em lugares diferentes"},
-    {"dois_rotulos", "Dois rótulos na mesma linha"},
-    {"rotulo_nao_declarado", "Rótulo não declarado"},
-    {"parametros_errados", "Instrução com número de parâmetros errado"},
-    {"instrucao_inexistente", "Instrução inexistente"},
+    {"rotulo_duplicado", "Erro semântico: rótulo declarado duas vezes em lugares diferentes"},
+    {"dois_rotulos", "Erro sintático: dois rótulos na mesma linha"},
+    {"rotulo_nao_declarado", "Erro semântico: rótulo não declarado"},
+    {"parametros_errados", "Erro sintático: instrução com número de parâmetros errado"},
+    {"instrucao_inexistente", "Erro sintático: instrução inexistente"},
     {"erro_lexico", "Erro léxico: rótulo inválido"}
 };
 
@@ -105,6 +105,8 @@ private:
     map<int, string> errosLinha;
     bool errosExibidos = false;
     bool resolverPendencias;
+    int numeroLinha = 0;
+    int contadorLabelsNaLinha = 0;
 
     vector<int> codigoObjeto;
     #define PROXIMO_ENDERECO codigoObjeto.size()
@@ -161,8 +163,8 @@ private:
     void montagem()
     {
         string linha;
-        int numeroLinha = 0; // usado para adiconar erros na linha correta
-        int contadorLabelsNaLinha = 0;
+        numeroLinha = 0; // usado para adiconar erros na linha correta
+        contadorLabelsNaLinha = 0;
         while (getline(infile, linha))
         {
             numeroLinha++;
@@ -186,126 +188,142 @@ private:
                 }
 
                 // É label?
-                if (ehDefinicaoDeLabel(palavra))
-                {
-                    contadorLabelsNaLinha++;
-                    if (contadorLabelsNaLinha > 1)
-                    {
-                        errosLinha.insert({numeroLinha, erros.at("dois_rotulos")});
-                    }
-                    
-                    if (palavra.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ01234567890_") != std::string::npos)
-                    {
-                        errosLinha.insert({numeroLinha, erros.at("erro_lexico")});
-                    }
-
-                    string rotulo = palavra.substr(0, palavra.size() - 1);
-                    // Verifica se o rótulo já foi declarado e definido
-                    if (tabelaSimbolos.find(rotulo) != tabelaSimbolos.end() && tabelaSimbolos.at(rotulo).ehDefinido())
-                    {
-                        errosLinha.insert({numeroLinha, erros.at("rotulo_duplicado")});
-                    }
-                    // Verifica se o rótulo já foi declarado mas não definido
-                    else if (tabelaSimbolos.find(rotulo) != tabelaSimbolos.end() && !tabelaSimbolos.at(rotulo).ehDefinido())
-                    {
-                        Simbolo& simbolo = tabelaSimbolos.at(rotulo);
-                        simbolo.definir(PROXIMO_ENDERECO);
-                        if (resolverPendencias)
-                        {
-                            for (const unsigned int &pendencia : simbolo.getPendencias())
-                            {
-                                substituiCodigoObjeto(pendencia, simbolo.getEndereco());
-                            }
-                        }
-                    }
-                    else
-                    {
-                        Simbolo simbolo(rotulo);
-                        simbolo.definir(PROXIMO_ENDERECO);
-                        tabelaSimbolos.insert({rotulo, simbolo});
-                    }
-                }
+                if (ehDefinicaoDeLabel(palavra)) tratarLabel(palavra);
                 // Verifica o opcode
-                else if (ehOpcode(palavra))
-                {
-                    contadorLabelsNaLinha = 0;
-                    
-                    // Adiciona no código objeto
-                    adicionaCodigoObjeto(tabelaOpCodes.at(palavra).getCodigo());
-
-                    // Lê os parâmetros
-                    const Opcode &opcode = tabelaOpCodes.at(palavra);
-                    string param;
-                    for (int i = 0; i < opcode.getArgumentos(); i++)
-                    {
-                        string param;
-                        if (iss >> param && !ehDefinicaoDeLabel(param) && !ehOpcode(param))
-                        {
-                            if (tabelaSimbolos.find(param) == tabelaSimbolos.end())
-                            {
-                                tabelaSimbolos.insert({param, Simbolo(param)});
-                                tabelaSimbolos.at(param).adicionarPendencia(PROXIMO_ENDERECO, numeroLinha);
-                                adicionaCodigoObjeto(-1);
-                            } 
-                            else if (!tabelaSimbolos.at(param).ehDefinido())
-                            {
-                                tabelaSimbolos.at(param).adicionarPendencia(PROXIMO_ENDERECO, numeroLinha);
-                                adicionaCodigoObjeto(-1);
-                            }
-                            else
-                            {
-                                adicionaCodigoObjeto(tabelaSimbolos.at(param).getEndereco());
-                            }
-                        }
-                        else
-                        {
-                            errosLinha.insert({numeroLinha, erros.at("parametros_errados")});
-                        }
-                    }
-                }
-                else if (ehDiretiva(palavra))
-                {
-                    contadorLabelsNaLinha = 0;
-                    
-                    if (palavra == "SPACE")
-                    {
-                        string tamanhoSpace;
-                        if (iss >> tamanhoSpace)
-                        {
-                            int tamanho = stoi(tamanhoSpace);
-                            for (int i = 0; i < tamanho; i++)
-                            {
-                                adicionaCodigoObjeto(0); // Espaço reservado inicializado com 0
-                            }
-                        }
-                        else
-                        {
-                            errosLinha.insert({numeroLinha, erros.at("parametros_errados")});
-                        }
-                    }
-                    else if (palavra == "CONST")
-                    {
-                        string valorStr;
-                        if (iss >> valorStr)
-                        {
-                            int valor = stoi(valorStr);
-                            adicionaCodigoObjeto(valor);
-                        }
-                        else
-                        {
-                            errosLinha.insert({numeroLinha, erros.at("parametros_errados")});
-                        }
-                    }
-                }
+                else if (ehOpcode(palavra)) tratarOpcode(palavra, iss);
+                // Verifica diretiva
+                else if (ehDiretiva(palavra)) tratarDiretiva(palavra, iss);
                 else
                 {
                     contadorLabelsNaLinha = 0;
-
                     errosLinha.insert({numeroLinha, erros.at("instrucao_inexistente")});
                 }
             }
         }
         infile.close();
+    }
+
+    void tratarLabel(const string &palavra)
+    {
+        contadorLabelsNaLinha++;
+
+        if (contadorLabelsNaLinha > 1)
+        {
+            errosLinha.insert({numeroLinha, erros.at("dois_rotulos")});
+        }
+
+        string rotulo = palavra.substr(0, palavra.size() - 1);
+        
+        if (rotulo.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789_") != string::npos)
+        {
+            errosLinha.insert({numeroLinha, erros.at("erro_lexico")});
+        }
+
+        // Verifica se o rótulo já foi declarado e definido
+        if (tabelaSimbolos.find(rotulo) != tabelaSimbolos.end() && tabelaSimbolos.at(rotulo).ehDefinido())
+        {
+            errosLinha.insert({numeroLinha, erros.at("rotulo_duplicado")});
+        }
+
+        // Verifica se o rótulo já foi declarado mas não definido
+        else if (tabelaSimbolos.find(rotulo) != tabelaSimbolos.end() && !tabelaSimbolos.at(rotulo).ehDefinido())
+        {
+            Simbolo& simbolo = tabelaSimbolos.at(rotulo);
+            simbolo.definir(PROXIMO_ENDERECO);
+            if (resolverPendencias)
+            {
+                for (const unsigned int &pendencia : simbolo.getPendencias())
+                {
+                    substituiCodigoObjeto(pendencia, simbolo.getEndereco());
+                }
+            }
+        }
+
+        // Define novo rótulo
+        else
+        {
+            Simbolo simbolo(rotulo);
+            simbolo.definir(PROXIMO_ENDERECO);
+            tabelaSimbolos.insert({rotulo, simbolo});
+        }
+    }
+
+    void tratarOpcode(const string &palavra, istringstream &iss)
+    {
+        contadorLabelsNaLinha = 0;
+                    
+        // Adiciona no código objeto
+        adicionaCodigoObjeto(tabelaOpCodes.at(palavra).getCodigo());
+
+        // Lê os parâmetros
+        const Opcode &opcode = tabelaOpCodes.at(palavra);
+        string param;
+        for (int i = 0; i < opcode.getArgumentos(); i++)
+        {
+            string param;
+            if (iss >> param && !ehDefinicaoDeLabel(param) && !ehOpcode(param))
+            {
+                // Verifica se o símbolo não existe na tabela de símbolos (adiciona como pendência)
+                if (tabelaSimbolos.find(param) == tabelaSimbolos.end())
+                {
+                    tabelaSimbolos.insert({param, Simbolo(param)});
+                    tabelaSimbolos.at(param).adicionarPendencia(PROXIMO_ENDERECO, numeroLinha);
+                    adicionaCodigoObjeto(-1);
+                }
+
+                // Verifica se o símbolo já foi declarado mas não definido (adiciona como pendência)
+                else if (!tabelaSimbolos.at(param).ehDefinido())
+                {
+                    tabelaSimbolos.at(param).adicionarPendencia(PROXIMO_ENDERECO, numeroLinha);
+                    adicionaCodigoObjeto(-1);
+                }
+                
+                // Símbolo já definido
+                else
+                {
+                    adicionaCodigoObjeto(tabelaSimbolos.at(param).getEndereco());
+                }
+            }
+            else
+            {
+                errosLinha.insert({numeroLinha, erros.at("parametros_errados")});
+            }
+        }
+    }
+
+    void tratarDiretiva(const string &palavra, istringstream &iss)
+    {
+        contadorLabelsNaLinha = 0;
+                    
+        if (palavra == "SPACE")
+        {
+            string tamanhoSpace;
+            if (iss >> tamanhoSpace)
+            {
+                int tamanho = stoi(tamanhoSpace);
+                for (int i = 0; i < tamanho; i++)
+                {
+                    adicionaCodigoObjeto(0); // Espaço reservado inicializado com 0
+                }
+            }
+            else
+            {
+                errosLinha.insert({numeroLinha, erros.at("parametros_errados")});
+            }
+        }
+        else if (palavra == "CONST")
+        {
+            string valorStr;
+            if (iss >> valorStr)
+            {
+                int valor = stoi(valorStr);
+                adicionaCodigoObjeto(valor);
+            }
+            else
+            {
+                errosLinha.insert({numeroLinha, erros.at("parametros_errados")});
+            }
+        }
     }
 
     void validaTabelaDeSimbolos()

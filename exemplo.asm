@@ -1,21 +1,22 @@
-FOO:     MACRO &1, &2 ; OI :)
-         LOAD &1
-         ADD &2
-         STORE &1
+FOO:     MACRO &FOO, &BAR ; OI :)
+         LOAD &FOO
+         ADD &BAR
+         STORE &FOO
          ENDMACRO
 BAR:     MACRO &1 ; Olá :)
-         ADD CINCO
+         ADD &1
          MULT &1
-         FOO &1, CINCO
+         FOO &1, &1
          ENDMACRO
-INICIO:  LOAD DOIS ; Tudo bem?
-         BAR DOIS
-         ADD CINCO
-         COPY DOIS CINCO
-         STORE DOIS
-         FOO DOIS, CINCO ; Com você? 
+INICIO:  LOAD _DOIS! ; Tudo bem?
+         BAR _DOIS!
+         ADD CI_NCO
+         ; Comentário feliz :)
+         COPY _DOIS! CI_NCO
+         STORE _DOIS!
+         FOO _DOIS!, CI_NCO ; Com você? 
          STOP
-DOIS:    
+_DOIS!:    
 SPACE 2
-CINCO:   
+CI_NCO:   
 CONST 5
