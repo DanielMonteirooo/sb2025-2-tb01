@@ -281,11 +281,24 @@ private:
 
         // Lê os parâmetros
         const Opcode &opcode = tabelaOpCodes.at(palavra);
-        string param;
         for (int i = 0; i < opcode.getArgumentos(); i++)
         {
             string param;
-            if (iss >> param && !ehDefinicaoDeLabel(param) && !ehOpcode(param))
+
+            iss >> param;
+
+            param.erase(remove(param.begin(), param.end(), ','), param.end());
+            param.erase(remove_if(param.begin(), param.end(), ::isspace), param.end());
+
+            // Tenta corrigir "param1 , param2"
+            if (param == "")
+            {
+                iss >> param;
+                param.erase(remove(param.begin(), param.end(), ','), param.end());
+                param.erase(remove_if(param.begin(), param.end(), ::isspace), param.end());
+            }
+            
+            if (!ehDefinicaoDeLabel(param) && !ehOpcode(param))
             {
                 // Verifica se há offset
                 size_t maisPos = param.find('+');
