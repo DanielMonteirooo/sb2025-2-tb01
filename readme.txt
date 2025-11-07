@@ -1,28 +1,77 @@
-Trabalho 1 de Software Básico
-Pre-processador e Montador
-=======================
-Autores:
-- Gabriel Queiroz - 221020870
-- Daniel Monteiro Oliveira - 202006608
-- Adriele Evellen Alves de Abreu - 202042785
-=======================
-Instruções para compilar e executar
-=======================
-O modo mais simples de compilar e executar o pré-processador e o montador é utilizando o
-script shell `run.sh`. É necessário informar o NOME do arquivo de entrada (sem a extensão) como argumento.
-Por exemplo, se o arquivo de entrada é "exemplo.asm":
-```
-bash ./run.sh exemplo
+# sb2025-2-tb01
+Trabalho de **Software Básico** — 2º semestre de 2025
+
+##Projeto: Pré-processador, Montador e Simulador
+
+### 👥 Autores
+- Gabriel Queiroz — 221020870
+- Daniel Monteiro Oliveira — 202006608
+- Adriele Evellen Alves de Abreu — 202042785
+
+---
+
+## Compilação e Execução
+
+### Compilar todos os componentes
+Para compilar o projeto completo (pré-processador, montador e simulador), basta executar:
+
+```bash
+make
 ```
 
-Para compilar utilizando o makefile, basta rodar o make no terminal
+Esse comando irá gerar os seguintes executáveis:
+- `preprocessador`
+- `montador`
+- `simulador`
+- E também o script automatizado `compilador`
 
-Para executar o pré-processador, utilize o comando:
+---
+
+### 🧩 Executar o script do compilador
+
+O script `compilador` integra as etapas de pré-processamento e montagem, e opcionalmente executa o simulador.  
+Para usá-lo, rode:
+
+```bash
+./compilador arquivo.asm
 ```
-./preprocessador <arquivo_entrada.asm>
+
+Caso deseje **compilar e também executar o simulador automaticamente**, use:
+
+```bash
+./compilador arquivo.asm --run
 ```
-Para executar o montador, utilize o comando:
+
+- O **arquivo de entrada** deve ter extensão `.asm`  
+- O nome base (`arquivo`, sem `.asm`) será usado para gerar:
+  - `arquivo.pre` → Saída do pré-processador  
+  - `arquivo.o1` e `arquivo.o2` → Saídas do montador  
+  - O simulador utiliza `arquivo.o2`
+
+---
+
+### Executar os testes automáticos
+O projeto inclui um **Test Harness**.  
+Para compilar e executar os testes:
+
+```bash
+make test
 ```
-./montador <arquivo_entrada.pre>
+
+---
+
+### Limpar arquivos gerados
+Para remover todos os binários e arquivos intermediários:
+
+```bash
+make clean
 ```
-=======================
+
+---
+
+### Estrutura dos arquivos gerados
+| Etapa | Programa | Entrada | Saída |
+|:------|:----------|:---------|:-------|
+| 1 | `preprocessador` | `arquivo.asm` | `arquivo.pre` |
+| 2 | `montador` | `arquivo.pre` | `arquivo.o1`, `arquivo.o2` |
+| 3 | `simulador` | `arquivo.o2` | Execução do programa montado |
