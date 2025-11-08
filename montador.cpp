@@ -101,11 +101,10 @@ bool Montador::montar() {
         adicionarErro(0, "SINTATICO", "Nenhum código gerado (arquivo vazio).");
     }
 
-    if (!has_errors) {
-        escreverArquivoO2();
-    } else {
-        cerr << "Erros encontrados durante a montagem. Arquivo .o2 não gerado." << endl;
-        remove(outname_o2.c_str());
+    escreverArquivoO2(); 
+
+    if (has_errors) {
+        cerr << "Erros encontrados durante a montagem. Arquivo .o2 gerado, mas pode conter erros." << endl;
     }
 
     reportarErros();
