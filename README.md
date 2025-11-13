@@ -3,7 +3,7 @@ Trabalho de **Software Básico** — 2º semestre de 2025
 
 ##Projeto: Pré-processador, Montador e Simulador
 
-### 👥 Autores
+### Autores
 - Gabriel Queiroz — 221020870
 - Daniel Monteiro Oliveira — 202006608
 - Adriele Evellen Alves de Abreu — 202042785
@@ -22,7 +22,6 @@ make
 Esse comando irá gerar os seguintes executáveis:
 - `preprocessador`
 - `montador`
-- `simulador`
 - E também o script automatizado `compilador`
 
 ---
@@ -30,7 +29,7 @@ Esse comando irá gerar os seguintes executáveis:
 ### 🧩 Executar o script do compilador
 
 O script `compilador` integra as etapas de pré-processamento e montagem, e opcionalmente executa o simulador.  
-Para usá-lo, rode:
+Para usá-lo, rode (lembrando que o "arquivo.asm" deve ser substituido pelo seu arquivo teste):
 
 ```bash
 ./compilador arquivo.asm
@@ -41,6 +40,7 @@ Caso deseje **compilar e também executar o simulador automaticamente**, use:
 ```bash
 ./compilador arquivo.asm --run
 ```
+
 
 - O **arquivo de entrada** deve ter extensão `.asm`  
 - O nome base (`arquivo`, sem `.asm`) será usado para gerar:
