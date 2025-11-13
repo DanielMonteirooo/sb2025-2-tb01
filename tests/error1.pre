@@ -1,0 +1,18 @@
+
+       
+       LOAD    N
+FAT:   SUB     ONE ; ERRO SEMANTICO: Símbolo não definido: ONE
+       JMPZ    FIM
+       STORE   AUX
+       MULT     N
+       STORE   N
+       LOAD    AUX
+       JMP     FAT
+FIM:   LOAD    N
+       SUB     FINAL
+       JMPZ    OK
+OK:    STOP
+AUX:   SPACE
+N:     CONST   5
+FINAL: CONST   120
+

@@ -1,0 +1,19 @@
+#!/bin/bash
+if [ $# -eq 0 ]; then echo 'Uso: ./compilador arquivo.asm [--run]'; exit 1; fi
+INPUT_FILE=$1
+RUN_FLAG=$2
+NOME_BASE=$(echo "$INPUT_FILE" | sed 's/\.asm$//')
+echo '--- [ETAPA 1/2] Executando Pré-Processador ---'
+./preprocessador "$NOME_BASE"
+if [ $? -ne 0 ]; then echo 'Erro no pré-processamento.'; exit 1; fi
+echo '--- [ETAPA 2/2] Executando Montador ---'
+./montador "$NOME_BASE"
+if [ $? -ne 0 ]; then
+  echo 'Erro na montagem. Verifique o arquivo .pre para detalhes.'
+  exit 1
+fi
+echo Compilação concluída com sucesso para "$NOME_BASE".
+if [ "$RUN_FLAG" == "--run" ]; then
+  echo '--- [ETAPA 3/3] Executando Simulador ---'
+  ./simulador "$NOME_BASE.o2"
+fi

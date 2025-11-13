@@ -1,0 +1,18 @@
+
+
+       LOAD    N
+FAT:   SUB     ONE
+       JMPZ   FIM
+       STORE  ADD  ; ERRO LEXICO: Rótulo inválido: ADD
+       MULT    N
+       STORE  N
+       LOAD   ADD ; ERRO LEXICO: Rótulo inválido: ADD
+       JMP    FAT
+FIM:   LOAD N
+       SUB FINAL
+       JMPZ  OK
+       OK:    STOP
+ADD:   SPACE ; ERRO LEXICO: Rótulo inválido: ADD
+N:     CONST  5
+FINAL: CONST 120
+ONE:   CONST   1

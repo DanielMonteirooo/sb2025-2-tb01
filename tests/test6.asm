@@ -1,0 +1,14 @@
+; TESTS COPY INSTRUCTION
+COPY N1 N2
+LOAD N2
+SUB ONE
+STORE N3
+JMPZ OK
+ERRO:  JMP     ERRO  ; Trava aqui se o resultado estiver errado
+
+OK: STOP
+
+N1: CONST 1
+N2: CONST 99
+ONE: CONST 1
+N3: SPACE
