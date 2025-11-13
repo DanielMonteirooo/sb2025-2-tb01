@@ -1,0 +1,12 @@
+INICIO:  LOAD DOIS 
+	         ADD CINCO
+	         MULT DOIS
+	         STORE DOIS
+         ADD CINCO
+         STORE DOIS
+	         LOAD DOIS
+	         ADD CINCO
+	         STORE DOIS
+         STOP
+DOIS:    SPACE 2
+CINCO:   CONST 5

@@ -1,0 +1,11 @@
+INPUT   N1      
+INPUT   N2      
+LOAD    N1      
+SUB     N2      
+STORE   N3      
+OUTPUT  N3      
+STOP            
+N1:     SPACE   
+N2:     SPACE   
+N3:     SPACE   
+

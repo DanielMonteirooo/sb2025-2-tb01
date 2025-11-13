@@ -1,0 +1,19 @@
+INICIO:  
+INICIO_:  
+         LOAD DOIS  ; ERRO SEMANTICO: Símbolo não definido: DOIS
+	         ADD CINCO
+	         MULT DOIS ; ERRO SEMANTICO: Símbolo não definido: DOIS
+	         LOAD DOIS ; ERRO SEMANTICO: Símbolo não definido: DOIS
+	         ADD CINCO
+	         STORE DOIS ; ERRO SEMANTICO: Símbolo não definido: DOIS
+         ADD CINCO
+         COPY DOIS CINCO ; ERRO SEMANTICO: Símbolo não definido: DOIS
+         STORE DOIS ; ERRO SEMANTICO: Símbolo não definido: DOIS
+	         LOAD DOIS ; ERRO SEMANTICO: Símbolo não definido: DOIS
+	         ADD CINCO
+	         STORE DOIS ; ERRO SEMANTICO: Símbolo não definido: DOIS
+         STOP
+DOIS:DOIS:     ; ERRO LEXICO: Rótulo inválido: DOIS:DOIS
+SPACE 2
+CINCO: CINCO: ; ERRO SINTATICO: Dois rótulos na mesma linha.
+CONST 5

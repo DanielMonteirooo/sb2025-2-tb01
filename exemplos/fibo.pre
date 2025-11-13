@@ -1,0 +1,28 @@
+       INPUT   LIMIT          
+       LOAD    ZERO           
+       STORE   CUR            
+       LOAD    ONE            
+       STORE   PREV           
+       STORE   TEMP           
+       
+FIB:   LOAD    CUR            
+       ADD     PREV           
+       STORE   TEMP           
+       LOAD    PREV           
+       STORE   CUR            
+       OUTPUT  CUR           
+       LOAD    TEMP           
+       STORE   PREV           
+       SUB     LIMIT          
+       JMPP    END            
+       JMP     FIB            
+       
+END:   STOP                   
+
+
+PREV:  SPACE                  
+CUR:   SPACE                  
+TEMP:  SPACE                  
+LIMIT: SPACE                  
+ZERO:  CONST  0               
+ONE:   CONST  1               
